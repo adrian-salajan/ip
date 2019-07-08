@@ -20,9 +20,11 @@ case class PageContents(contents: String) extends Page
 
 trait Parser {
 
-  def pages(page: PageContents): Either[Throwable, List[PageUrlNumbered]]
+  def pageContents(uRL: URL): Either[Throwable, PageContents]
 
-  def simpleView(page: PageContents): Either[Throwable, List[SimpleView]]
+  def pageUrls(page: PageContents): Either[Throwable, List[PageUrlNumbered]]
+
+  def simpleViews(page: PageContents): Either[Throwable, List[SimpleView]]
 
 }
 
@@ -31,7 +33,7 @@ class WebParser extends Parser {
 
   import scala.collection.JavaConverters._
 
-  override def pages(page: PageContents): Either[Throwable, List[PageUrlNumbered]] = {
+  override def pageUrls(page: PageContents): Either[Throwable, List[PageUrlNumbered]] = {
     Try {
 
       val buttons = Jsoup.parse(page.contents).select(".index_paginare a.butonpaginare:not(.inainte)")
@@ -91,7 +93,7 @@ class WebParser extends Parser {
     )
   }.toEither
 
-  override def simpleView(page: PageContents): Either[Throwable, List[SimpleView]] = {
+  override def simpleViews(page: PageContents): Either[Throwable, List[SimpleView]] = {
     val boxes = Try {
       val doc = Jsoup.parse(page.contents)
       doc.select(".box-anunt:not(.anunt-special)").iterator().asScala.toList
@@ -112,6 +114,12 @@ class WebParser extends Parser {
 
 
   }
+
+  override def pageContents(uRL: URL): Either[Throwable, PageContents] = Try {
+    import scala.concurrent.duration._
+    val doc = Jsoup.parse(uRL, (5 second).toMillis.toInt)
+    PageContents(doc.outerHtml())
+  }.toEither
 }
 
 

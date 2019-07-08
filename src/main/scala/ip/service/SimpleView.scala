@@ -2,7 +2,7 @@ package ip.service
 
 import java.net.URL
 
-case class Floor(etaj: Int, etajMax: Int)
+case class Floor(floor: Int, floorMax: Int)
 
 sealed trait Compartiment
 object Decomandat extends Compartiment

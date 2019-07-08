@@ -6,6 +6,10 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
 import scala.util.Try
+import cats.syntax.either._
+import cats.syntax.traverse._
+import cats.instances.list._
+import cats.instances.either._
 
 
 sealed trait Page
@@ -47,33 +51,32 @@ class WebParser extends Parser {
   }
 
 
-  def parseFloor(floor: String): (Int, Int) = {
+  private def parseFloor(floor: String): (Int, Int) = {
     val parts = floor.split("/")
     val maxFloor = Integer.parseInt(parts(1))
-    if (floor.toLowerCase.contains("parter"))
-      (0, maxFloor)
-    else
-      (Integer.parseInt(parts(0).filter(_.isDigit)), maxFloor)
+    if (floor.toLowerCase.contains("parter")) (0, maxFloor)
+    else (parts(0).filter(d => d.isDigit).toInt, maxFloor)
+
   }
 
-  def parseCompariment(compartiment: String): Compartiment = compartiment.toLowerCase match {
+  private def parseCompariment(compartiment: String): Compartiment = compartiment.toLowerCase match {
     case "decomandat" => Decomandat
     case "nedecomandat" => Nedecomandat
     case "circular" => Circular
     case other => Other(other)
   }
 
-  def parseParts(details: Element): Parts = {
+  private def parseParts(details: Element): Parts = {
     val parts  = WebParser.SimpleViewPartsOrder.zip(details.select("li").asScala.toList.map(_.text()))
     val partsToText = parts.toMap
 
-    val (floor, maxFloor) = parseFloor(partsToText(Floor))
+    val (floor, maxFloor) = parseFloor(partsToText(FloorPart))
     Parts(
       Integer.parseInt(partsToText(Rooms).filter(_.isDigit)),
-      Integer.parseInt(partsToText(Surface).filter(_.isDigit)),
+      partsToText(Surface).filter(d => d.isDigit || '.'.equals(d)).toDouble.intValue(),
       floor,
       maxFloor,
-      parseCompariment(partsToText(Compartiment)),
+      parseCompariment(partsToText(CompartimentPart)),
       partsToText.contains(IsNew)
     )
 
@@ -81,19 +84,21 @@ class WebParser extends Parser {
 
   case class Parts(rooms: Int, surface: Int, floor: Int, maxFloor:Int, c: Compartiment, isNew: Boolean)
 
-  def parseSimpleView(id: String, url: URL, details: Element): SimpleView = {
+  private def parseSimpleView(id: String, url: URL, details: Element): Either[Throwable, SimpleView] = Try {
     val parts = parseParts(details)
-    SimpleView(id, url, parts.surface, parts.rooms, Etaj(parts.floor, parts.maxFloor), parts.c,
-      if (parts.isNew) BlocNou else An(0) //TODO
+    SimpleView(id, url, parts.surface, parts.rooms, Floor(parts.floor, parts.maxFloor), parts.c,
+      if (parts.isNew) NewBuilding else Year(0) //TODO
     )
-  }
+  }.toEither
 
   override def simpleView(page: PageContents): Either[Throwable, List[SimpleView]] = {
-    Try {
+    val boxes = Try {
       val doc = Jsoup.parse(page.contents)
-      val boxes = doc.select(".box-anunt:not(.anunt-special)").iterator().asScala.toList
+      doc.select(".box-anunt:not(.anunt-special)").iterator().asScala.toList
+    }.toEither
 
-      for {
+    boxes.flatMap { boxes =>
+      val all: List[Either[Throwable, SimpleView]] = for {
         box <- boxes
         idParts = box.id().split("-")
         id = if (idParts.size > 1) idParts(1) else "noId"
@@ -102,7 +107,9 @@ class WebParser extends Parser {
         simpleView = parseSimpleView(id, url, descriptionElement)
       } yield simpleView
 
-    }.toEither
+      all.sequence.asInstanceOf[Either[Throwable, List[SimpleView]]] //TODO partialunification
+    }
+
 
   }
 }
@@ -111,11 +118,11 @@ class WebParser extends Parser {
 sealed trait SimpleViewParts extends Product with Serializable
 case object Rooms extends SimpleViewParts
 case object Surface extends SimpleViewParts
-case object Floor extends SimpleViewParts
-case object Compartiment extends SimpleViewParts
+case object FloorPart extends SimpleViewParts
+case object CompartimentPart extends SimpleViewParts
 case object IsNew extends SimpleViewParts
 
 object WebParser {
-  val SimpleViewPartsOrder = List(Rooms, Surface, Floor, Compartiment, IsNew)
+  val SimpleViewPartsOrder = List(Rooms, Surface, FloorPart, CompartimentPart, IsNew)
 
 }

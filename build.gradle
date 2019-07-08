@@ -17,10 +17,30 @@ dependencies {
 
     compile group: 'org.jsoup', name: 'jsoup', version: '1.12.1'
 
+    // https://mvnrepository.com/artifact/org.typelevel/cats-core
+    compile group: 'org.typelevel', name: 'cats-core_2.12', version: '1.6.1'
+
+
 
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
     // https://mvnrepository.com/artifact/org.scalatest/scalatest
     testCompile group: 'org.scalatest', name: 'scalatest_2.12', version: '3.0.8'
 
+}
+
+afterEvaluate {
+    tasks.withType(ScalaCompile) {
+        scalaCompileOptions.with {
+            additionalParameters = [
+                    '-feature',
+                    '-language:postfixOps',
+                    '-language:implicitConversions',
+                    '-language:higherKinds',
+                    '-language:existentials',
+                    '-Ypartial-unification',
+                    '-Xplugin:' + configurations.scalaCompilerPlugin.asPath
+            ]
+        }
+    }
 }

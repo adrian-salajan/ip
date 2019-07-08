@@ -2,7 +2,7 @@ package ip.service
 
 import java.net.URL
 
-case class Etaj(etaj: Int, etajMax: Int)
+case class Floor(etaj: Int, etajMax: Int)
 
 sealed trait Compartiment
 object Decomandat extends Compartiment
@@ -10,8 +10,8 @@ object Nedecomandat extends Compartiment
 object Circular extends Compartiment
 case class Other(compartiment: String) extends Compartiment
 
-sealed trait Vechime
-object BlocNou extends Vechime
-case class An(an: Int) extends Vechime
+sealed trait Age
+object NewBuilding extends Age
+case class Year(year: Int) extends Age
 
-case class SimpleView(id: String, url: URL,  mp: Int, camere: Int, etaj: Etaj, compartiment: Compartiment, vechime:Vechime)
+case class SimpleView(id: String, url: URL, surface: Int, rooms: Int, etaj: Floor, compartiment: Compartiment, age:Age)

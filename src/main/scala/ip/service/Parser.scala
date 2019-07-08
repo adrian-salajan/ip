@@ -14,15 +14,17 @@ import cats.instances.either._
 
 sealed trait Page
 case class PageUrl(url: URL) extends Page
-case class PageUrlNumbered(url: URL, pageNumber: Int) extends Page
+case class PageUrlNumbered(url: String, pageNumber: Int) extends Page
 case class PageContents(contents: String) extends Page
 
 
 trait Parser {
 
-  def pages(page: PageContents): Either[Throwable, List[PageUrlNumbered]]
+  def pageContents(uRL: String): Either[Throwable, PageContents]
 
-  def simpleView(page: PageContents): Either[Throwable, List[SimpleView]]
+  def pageUrls(page: PageContents): Either[Throwable, List[PageUrlNumbered]]
+
+  def simpleViews(page: PageContents): Either[Throwable, List[SimpleView]]
 
 }
 
@@ -31,20 +33,20 @@ class WebParser extends Parser {
 
   import scala.collection.JavaConverters._
 
-  override def pages(page: PageContents): Either[Throwable, List[PageUrlNumbered]] = {
+  override def pageUrls(page: PageContents): Either[Throwable, List[PageUrlNumbered]] = {
     Try {
 
       val buttons = Jsoup.parse(page.contents).select(".index_paginare a.butonpaginare:not(.inainte)")
         .iterator().asScala.toList
 
       val lastButton = buttons.last
-      val lastPage = PageUrlNumbered(new URL(lastButton.absUrl("href")), Integer.parseInt(lastButton.text()))
+      val lastPage = PageUrlNumbered(lastButton.absUrl("href"), Integer.parseInt(lastButton.text()))
 
       for {
         pn <- 1 to lastPage.pageNumber
         stringUrl = lastPage.url.toString
         baseUrl = stringUrl.substring(0, stringUrl.lastIndexOf("=") + 1)
-      } yield PageUrlNumbered(new URL(baseUrl + pn), pn)
+      } yield PageUrlNumbered(baseUrl + pn, pn)
 
     }.map(_.toList).toEither
 
@@ -53,8 +55,11 @@ class WebParser extends Parser {
 
   private def parseFloor(floor: String): (Int, Int) = {
     val parts = floor.split("/")
-    val maxFloor = Integer.parseInt(parts(1))
+
+    val maxFloor = if (parts.size > 1) Integer.parseInt(parts(1)) else 0
+
     if (floor.toLowerCase.contains("parter")) (0, maxFloor)
+    else if (floor.toLowerCase.contains("demisol")) (-1, maxFloor)
     else (parts(0).filter(d => d.isDigit).toInt, maxFloor)
 
   }
@@ -72,8 +77,8 @@ class WebParser extends Parser {
 
     val (floor, maxFloor) = parseFloor(partsToText(FloorPart))
     Parts(
-      Integer.parseInt(partsToText(Rooms).filter(_.isDigit)),
-      partsToText(Surface).filter(d => d.isDigit || '.'.equals(d)).toDouble.intValue(),
+      rooms = parseRoom(partsToText) ,
+      surface = parseSurface(partsToText),
       floor,
       maxFloor,
       parseCompariment(partsToText(CompartimentPart)),
@@ -82,36 +87,66 @@ class WebParser extends Parser {
 
   }
 
+  private def parseSurface(partsToText: Map[SimpleViewParts, String]) = {
+    val surface = partsToText(Surface)
+    Try { surface.filter(d => d.isDigit || '.'.equals(d)).toDouble.intValue()}.getOrElse(0)
+  }
+
+  private def parseRoom(partsToText: Map[SimpleViewParts, String]) : Int= {
+      val rooms = partsToText(Rooms)
+      if (rooms.equals("o cameră")) 1
+      else Try {Integer.parseInt(rooms.filter(_.isDigit))}.getOrElse(0)
+  }
+
   case class Parts(rooms: Int, surface: Int, floor: Int, maxFloor:Int, c: Compartiment, isNew: Boolean)
 
-  private def parseSimpleView(id: String, url: URL, details: Element): Either[Throwable, SimpleView] = Try {
-    val parts = parseParts(details)
-    SimpleView(id, url, parts.surface, parts.rooms, Floor(parts.floor, parts.maxFloor), parts.c,
-      if (parts.isNew) NewBuilding else Year(0) //TODO
-    )
-  }.toEither
 
-  override def simpleView(page: PageContents): Either[Throwable, List[SimpleView]] = {
+  override def simpleViews(page: PageContents): Either[Throwable, List[SimpleView]] = {
     val boxes = Try {
       val doc = Jsoup.parse(page.contents)
       doc.select(".box-anunt:not(.anunt-special)").iterator().asScala.toList
     }.toEither
 
-    boxes.flatMap { boxes =>
-      val all: List[Either[Throwable, SimpleView]] = for {
-        box <- boxes
-        idParts = box.id().split("-")
-        id = if (idParts.size > 1) idParts(1) else "noId"
-        url = new URL(box.selectFirst(".row .mobile-container-url").absUrl("href"))
-        descriptionElement = box.selectFirst(".caracteristici")
-        simpleView = parseSimpleView(id, url, descriptionElement)
-      } yield simpleView
-
-      all.sequence.asInstanceOf[Either[Throwable, List[SimpleView]]] //TODO partialunification
+    boxes.flatMap { bxs =>
+      val opts = bxs.map(parseSimpleView)
+      opts.flatten.asRight
     }
-
-
   }
+
+  private def parseSimpleView(box: Element) = {
+    Try {
+      val idParts = box.id().split("-")
+      val id = if (idParts.size > 1) idParts(1) else "noId"
+      val url = Try {
+        box.selectFirst(".row .mobile-container-url").absUrl("href")
+      }.getOrElse("")
+      val descriptionElement = box.selectFirst(".caracteristici")
+      val priceEur = Try {
+        Integer.parseInt(box.select(".pret-mare").text().filter(_.isDigit))
+      }.getOrElse(0)
+      val parts = parseParts(descriptionElement)
+      SimpleView(id, url, parts.surface, parts.rooms, Floor(parts.floor, parts.maxFloor), parts.c,
+        if (parts.isNew) NewBuilding else Year(-1), //TODO
+        priceEur
+      )
+    }.toOption //TODO maybe log Failed element
+  }
+
+  override def pageContents(uRL: String): Either[Throwable, PageContents] = Try {
+    import scala.concurrent.duration._
+    val connection = Jsoup.connect(uRL)
+        .userAgent("User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36")
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3")
+
+    val doc = if (!System.getProperty("http.proxyHost", "nil").equals("nil")) {
+        connection
+          .proxy(System.getProperty("http.proxyHost"), System.getProperty("http.proxyPort").toInt)
+          .get()
+    } else connection.get()
+
+      PageContents(doc.outerHtml())
+  }.toEither
 }
 
 
@@ -124,5 +159,4 @@ case object IsNew extends SimpleViewParts
 
 object WebParser {
   val SimpleViewPartsOrder = List(Rooms, Surface, FloorPart, CompartimentPart, IsNew)
-
 }

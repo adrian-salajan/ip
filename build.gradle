@@ -20,6 +20,14 @@ dependencies {
     // https://mvnrepository.com/artifact/org.typelevel/cats-core
     compile group: 'org.typelevel', name: 'cats-core_2.12', version: '1.6.1'
 
+// https://mvnrepository.com/artifact/com.chuusai/shapeless
+    compile group: 'com.chuusai', name: 'shapeless_2.12', version: '2.3.3'
+
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+
+
+
 
 
 
@@ -39,7 +47,7 @@ afterEvaluate {
                     '-language:higherKinds',
                     '-language:existentials',
                     '-Ypartial-unification',
-                    '-Xplugin:' + configurations.scalaCompilerPlugin.asPath
+//                    '-Xplugin:' + configurations.scalaCompilerPlugin.asPath
             ]
         }
     }

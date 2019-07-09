@@ -1,6 +1,14 @@
 package ip.actor
 
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit
+
+import ip.actor.Coordinator.{ProcessPage, SimpleViewResults, Start}
+import ip.service._
+import akka.pattern.pipe
+import akka.pattern.{ask, pipe}
+import akka.util.Timeout
+import ip.actor.SimpleViewActor.GetSimpleViews
 
 import akka.actor.{Actor, PoisonPill, Props}
 import akka.pattern.{ask, pipe}

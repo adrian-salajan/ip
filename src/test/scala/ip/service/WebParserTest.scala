@@ -38,18 +38,18 @@ class WebParserTest extends  FeatureSpec with Matchers with EitherValues with In
 
         last shouldBe SimpleView("XANP00011",
           "https://www.imobiliare.ro/vanzare-apartamente/cluj-napoca/marasti/apartament-de-vanzare-3-camere-XANP00011?lista=140934042",
-          77, 3, Floor(4, 6), Decomandat, NewBuilding, 91207)
+          77, 3, Floor(4, 6), Decomandat, NewBuilding, 91207, "marasti")
     }
   }
 
   scenario("csv") {
 
-    val s = SimpleView("id", "http://www.google.com", 23, 5, Floor(2, 5), Nedecomandat, NewBuilding, 23000)
+    val s = SimpleView("id", "http://www.google.com", 23, 5, Floor(2, 5), Nedecomandat, NewBuilding, 23000, "marasti")
 
 
     val csv = new CsvService().exportToCsv(List(s))
 
-    csv shouldBe List("id,5,23,2,5,nedecomandat,0,23000,http://www.google.com")
+    csv shouldBe List("id,5,23,2,5,nedecomandat,0,23000,marasti,http://www.google.com")
 
   }
 

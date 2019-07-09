@@ -21,4 +21,5 @@ case class SimpleView(
                        floor: Floor,
                        compartiment: Compartiment,
                        age:Age,
-                       priceEur: Int)
+                       priceEur: Int,
+                       location: String)

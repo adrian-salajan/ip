@@ -23,7 +23,7 @@ class CsvService {
   private def toCsv(s: SimpleView): String = {
     s"${s.id},${s.rooms}," +
       s"${s.surface},${s.floor.floor},${s.floor.floorMax},${compartiment(s.compartiment)},${age(s.age)}," +
-      s"${s.priceEur},${s.url.toString}"
+      s"${s.priceEur},${s.location},${s.url.toString}"
   }
 
 
@@ -45,7 +45,7 @@ class CsvService {
 
 object CsvService {
 
-  val SimpleViewHeader = "id,rooms,surface,floor,maxfloor,compartiment,age,euro,link"
+  val SimpleViewHeader = "id,rooms,surface,floor,maxfloor,compartiment,age,euro,location,link"
 
 
 }

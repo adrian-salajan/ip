@@ -113,23 +113,29 @@ class WebParser extends Parser {
     }
   }
 
-  private def parseSimpleView(box: Element) = {
+  private def parseSimpleView(box: Element): Option[SimpleView] = {
     Try {
       val idParts = box.id().split("-")
       val id = if (idParts.size > 1) idParts(1) else "noId"
-      val url = Try {
-        box.selectFirst(".row .mobile-container-url").absUrl("href")
-      }.getOrElse("")
+      val url = box.selectFirst(".row .mobile-container-url").absUrl("href")
       val descriptionElement = box.selectFirst(".caracteristici")
       val priceEur = Try {
         Integer.parseInt(box.select(".pret-mare").text().filter(_.isDigit))
       }.getOrElse(0)
       val parts = parseParts(descriptionElement)
+      val location = parseLocation(box.selectFirst(".localizare"))
       SimpleView(id, url, parts.surface, parts.rooms, Floor(parts.floor, parts.maxFloor), parts.c,
         if (parts.isNew) NewBuilding else Year(-1), //TODO
-        priceEur
+        priceEur, location
       )
     }.toOption //TODO maybe log Failed element
+  }
+
+  def parseLocation(location: Element): String = {
+    val text = location.text().toLowerCase
+    val zoneIndex = text.lastIndexOf("zona")
+    if (zoneIndex == -1) ""
+    else text.substring(zoneIndex + 5)
   }
 
   override def pageContents(uRL: String): Either[Throwable, PageContents] = Try {

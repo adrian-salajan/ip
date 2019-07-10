@@ -28,7 +28,7 @@ function orderColumns(data) {
 
     // set the dimensions and margins of the graph
     var margin = {top: 30, right: 10, bottom: 10, left: 0},
-      width = 800 - margin.left - margin.right,
+      width = 1000 - margin.left - margin.right,
       height = 400 - margin.top - margin.bottom;
 
 
@@ -53,7 +53,23 @@ var domainRooms = [1, 2, 3, 4, 5]
 var range = [1, 2, 3, 4, 5].reverse()
 var rangeRooms = []
 for (i in range) {
-  rangeRooms[i] = ((height / 5) * range[i]) - (height / 5)
+  rangeRooms[i] = (height / 4) * range[i] - height / 4
+}
+
+//floor axis
+var domainFloor = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+var range =       [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].reverse()
+var rangeFloor = []
+for (i in range) {
+  rangeFloor[i] = ((height / 13) * range[i]) + 30 //same as top margin
+}
+
+//age axis
+var domainAge = [-1, 0]
+var range = [1, 0].reverse()
+var rangeAge = []
+for (i in range) {
+  rangeAge[i] = height * Math.abs(domainAge[i]);
 }
 
     // append the svg object to the body of the page
@@ -85,6 +101,7 @@ var alerted = false
       for (i in dimensions) {
 
         name = dimensions[i]
+
         if (name == "compartiment") {
           y[name] = d3.scaleOrdinal()
             .domain(domainCompartiment)
@@ -93,12 +110,25 @@ var alerted = false
           y[name] = d3.scaleOrdinal()
             .domain(domainLocation)
             .range(rangeLocation)
-
+        } else if (name == "age") {
+          y[name] = d3.scaleOrdinal()
+            .domain(domainAge)
+            .range(rangeAge)
+            // .tickFormat(function (d) {
+              // var mapper = {
+                // 0 : "vechi",
+                // 1 :"nou"
+              // }
+              // return mapper[d]
+            // })
         } else if (name == "rooms") {
           y[name] = d3.scaleOrdinal()
           .domain(domainRooms)
           .range(rangeRooms)
-
+        } else if (name == "floor" || name == "maxfloor") {
+          y[name] = d3.scaleOrdinal()
+          .domain(domainFloor)
+          .range(rangeFloor)
         } else y[name] = d3.scaleLinear()
           .domain( d3.extent(data, function(d) { return +d[name]; }) )
           .range([height, 0])

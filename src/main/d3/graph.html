@@ -12,25 +12,38 @@
     <script src="d3.v4.min.js"></script>
     <script>
 
-var columns =           ["rooms", "surface", "floor", "maxfloor", "compartiment", "age", "euro", "location"]
-var desiredColumns =    ["location", "surface", "euro", "floor", "maxfloor", "age", "compartiment", "rooms"]
+var csvData = "simple_3r_70.csv"
 
-function orderColumns(data) {
-  var newData = []
-  for (i in desiredColumns) {
-    var columnToAdd = columns.indexOf(desiredColumns[i])
-    newData.push( data[columnToAdd] )
-  }
-  return newData;
-}
-
-
-
-    // set the dimensions and margins of the graph
+  // set the dimensions and margins of the graph
     var margin = {top: 30, right: 10, bottom: 10, left: 0},
-      width = 1000 - margin.left - margin.right,
-      height = 400 - margin.top - margin.bottom;
+      width = 2000 - margin.left - margin.right,
+      height = 800 - margin.top - margin.bottom;
 
+
+
+
+      function hashCode(str) { // java String#hashCode
+          var hash = 0;
+          for (var i = 0; i < str.length; i++) {
+             hash = str.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          return hash;
+      }
+
+      function intToRGB(i){
+          var c = (i & 0x00FFFFFF)
+              .toString(16)
+              .toUpperCase();
+
+          return "00000".substring(0, 6 - c.length) + c;
+      }
+
+
+      function stc(str) { return "#" + intToRGB(hashCode(str)) }
+
+      // var locationColors = [
+      //   #e31b6b, #1b7fe3, #69965a, #e388ac, #5a7896, #dce352, #d452e3, #1bc5e3, #e3b752, #6b3696, #1be3bb, #e38552, #431be3, #52e360, #e35252
+      // ]
 
 //location axis
 var domainLocation = [
@@ -111,19 +124,24 @@ for (i in range) {
 
     .append("g")
       .attr("transform",
-            "translate(" + margin.left + "," + margin.top + ")");
+            "translate(" + margin.left + "," + margin.top + ")")
+
+
+
 
 var alerted = false
 
     // Parse the Data
-    d3.csv("simple_views_small_db.csv", function(data) {
-      console.log(data)
-      data = orderColumns(data)
+    d3.csv(csvData, function(error, data) {
+      console.log("csv error = " + error)
+      // console.log(data)
+      // data = orderColumns(datau)
 
       // Extract the list of dimensions we want to keep in the plot. Here I keep all except the column called Species
       //[surface, floor, price, etc]
 
-      dimensions = orderColumns(d3.keys(data[0]).filter(function(d) { return d != "link"  && d != "id";}))
+      // dimensions = orderColumns(d3.keys(data[0]).filter(function(d) { return d != "link"  && d != "id";}))
+      dimensions = d3.keys(data[0]).filter(function(d) { return d != "link"  && d != "id";})
       console.log("dim= " + dimensions)
 
 
@@ -194,28 +212,49 @@ var alerted = false
       var highlight = function(d){
 
         selected_specie = d.id
+        // var thiz = d3.select(this)
 
-        // alert(selected_specie)
+
         // first every group turns grey
-        d3.selectAll(".line")
-          .transition().duration(200)
-          .style("stroke", "lightgrey")
-          .style("opacity", "0.8")
-          .attr("stroke-width", "1px")
+        // d3.selectAll(".line")
+        //   // .transition().duration(200)
+        //   .style("stroke", "lightgrey")
+        //   .style("opacity", "0.8")
+        //   .style("stroke-width", 1)
+
+
         // Second the hovered specie takes its color
-        d3.selectAll("." + selected_specie)
-          .transition().duration(0)
-          .style("stroke", "#000")
-          .attr("stroke-width", "1.4px")
-          .style("opacity", "1")
-      }
+        // d3.selectAll("." + selected_specie)
+        //   d3.select(this)
+        //   // .transition().duration(0)
+        //  .style("stroke", "#000")
+        //   .style("stroke-width", 1)
+        //   .style("opacity", "1")
+
+
+
+
+
+         svg.append("path")
+             // .attr("d", path(d))
+             .attr("id", "arcSelection")
+             .attr("d", d3.select(this).attr("d"))
+             .style("fill", "none")
+             .style("opacity", 1)
+             .style("stroke", "#f00")
+             .style("stroke-width", 1);
+
+      }//highlight
 
       // Unhighlight
       var doNotHighlight = function(d){
-        d3.selectAll(".line")
-          .transition().duration(1000).delay(500)
-          .style("stroke", "#69b3a2")
-          .style("opacity", "1")
+        // d3.selectAll(".line")
+        //   .transition().duration(1000).delay(500)
+        //   .style("stroke", "#69b3a2")
+        //   .style("opacity", "1")
+
+
+          d3.select("#arcSelection").remove();
       }
 
 
@@ -229,12 +268,15 @@ var alerted = false
             .append("path")
             .attr("d",  path)
             .attr("class", function(d) { return "line " + d.id} )
+            .attr("target", "_blank")
             .style("fill", "none")
-            .style("stroke", "#69b3a2")
-            .style("opacity", 0.5)
-            .attr("stroke-width", "1px")
+            //.style("stroke", "#69b3a2")
+            .style("stroke", function(d) { return stc(d.location) })
+            .style("opacity", 0.4)
+            //.style("stroke-width", 1.2)
+             .style("stroke-width", 1.5)
             .on("mouseover", highlight)
-            .on("mouseleave", doNotHighlight )
+            .on("mouseout", doNotHighlight )
           // .on("mouseclick", )
 
       // Draw the axis:
@@ -253,7 +295,21 @@ var alerted = false
           .text(function(d) { return d; })
           .style("fill", "black")
 
+
+          // rotate
+
+          // svg.append("g")
+          // svg.attr('transform',function(){
+          //             var me = svg.node()
+          //             var x1 = me.getBBox().x + me.getBBox().width/2;//the center x about which you want to rotate
+          //             var y1 = me.getBBox().y + me.getBBox().height/2;//the center y about which you want to rotate
+          //
+          //             return `rotate(90, ${x1}, ${y1})`;//rotate 180 degrees about x and y
+          //         });
+
+
     })
+
 
 
     </script>

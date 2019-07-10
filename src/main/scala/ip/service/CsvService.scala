@@ -30,6 +30,7 @@ class CsvService {
   private def compartiment(compartiment: Compartiment): String = compartiment match {
     case Nedecomandat => "nedecomandat"
     case Decomandat => "decomandat"
+    case Semidecomandat => "semidecomandat"
     case Circular => "circular"
     case Other(other) => other
   }

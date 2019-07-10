@@ -6,6 +6,7 @@ case class Floor(floor: Int, floorMax: Int)
 sealed trait Compartiment
 object Decomandat extends Compartiment
 object Nedecomandat extends Compartiment
+object Semidecomandat extends Compartiment
 object Circular extends Compartiment
 case class Other(compartiment: String) extends Compartiment
 

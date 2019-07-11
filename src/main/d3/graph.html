@@ -12,7 +12,23 @@
     <script src="d3.v4.min.js"></script>
     <script>
 
-var csvData = "simple_3r_70.csv"
+    function replaceQueryParam(param, newval) {
+      var search = window.location.search
+      var regex = new RegExp("([?;&])" + param + "[^&;]*[;&]?");
+      var query = search.replace(regex, "$1").replace(/&$/, '');
+
+    function goToLocation(location) {
+       window.location = window.location.pathname + replaceQueryParam("location", location)
+    }
+
+    return (query.length > 2 ? query + "&" : "?") + (newval ? param + "=" + newval : '');
+}
+
+    var url_string = window.location.href
+    var url = new URL(url_string);
+    var locatie = url.searchParams.get("location");
+
+var csvData = "2019-07-11/"+ locatie + ".csv"
 
   // set the dimensions and margins of the graph
     var margin = {top: 30, right: 10, bottom: 10, left: 0},
@@ -47,38 +63,48 @@ var csvData = "simple_3r_70.csv"
 
 //location axis
 var domainLocation = [
-"aeroport",
-"andrei muresanu",
-"aurel vlaicu",
-"baciu",
-"borhanci",
-"bulgaria",
-"buna ziua",
-"calea turzii",
-"campului",
-"central",
-"dambul rotund",
-"europa",
-"gara",
-"gheorgheni",
-"grigorescu",
-"gruia",
-"intre lacuri",
-"iris",
-"location",
-"manastur",
-"marasti",
-"p-ta mihai viteazul",
-"plopilor",
-"semicentral",
-"someseni",
-"sopor",
-"ultracentral",
-"vest",
-"zorilor",
 
+  "plopilor",
+  "grigorescu",
+  "gruia",
+  "marasti",
+
+  "ultracentral",
+  "central",
+  "semicentral",
+
+  "gheorgheni",
+  "andrei muresanu",
+  "zorilor",
+  "europa",
+  "buna ziua",
+  "intre lacuri",
+
+"manastur",
+
+  "aurel vlaicu", //dupa marasti
+  "calea turzii",
+
+  "p-ta mihai viteazul",
+
+  "borhanci",
+  "bulgaria",
+  "sopor",
+
+
+"location",
+
+
+"vest",
+"iris",
+"campului",
+"dambul rotund", // inainte de baciu
+"baciu",
+"aeroport",
+"gara",
+"someseni"
 ]
-var range = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28].reverse()
+var range = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
 var rangeLocation= []
 for (i in range) {
   rangeLocation[i] = (height / 28) * range[i]
@@ -141,7 +167,7 @@ var alerted = false
       //[surface, floor, price, etc]
 
       // dimensions = orderColumns(d3.keys(data[0]).filter(function(d) { return d != "link"  && d != "id";}))
-      dimensions = d3.keys(data[0]).filter(function(d) { return d != "link"  && d != "id";})
+      dimensions = d3.keys(data[0]).filter(function(d) { return d != "link" & d != "id";})
       console.log("dim= " + dimensions)
 
 
@@ -176,6 +202,11 @@ var alerted = false
           y[name] = d3.scaleOrdinal()
           .domain(domainRooms)
           .range(rangeRooms)
+        
+        // } else if (name == "ordinal") {
+          // y[name] = d3.scaleOrdinal()
+          // .domain([0, 50 ,100])
+          // .range([0, height])
         } else if (name == "floor" || name == "maxfloor") {
           y[name] = d3.scaleOrdinal()
           .domain(domainFloor)
@@ -217,19 +248,19 @@ var alerted = false
 
         // first every group turns grey
         // d3.selectAll(".line")
-        //   // .transition().duration(200)
-        //   .style("stroke", "lightgrey")
-        //   .style("opacity", "0.8")
-        //   .style("stroke-width", 1)
+          // .transition().duration(200)
+          // .style("stroke", "lightgrey")
+          // .style("opacity", "0.8")
+          // .style("stroke-width",4)
 
 
         // Second the hovered specie takes its color
         // d3.selectAll("." + selected_specie)
         //   d3.select(this)
-        //   // .transition().duration(0)
-        //  .style("stroke", "#000")
-        //   .style("stroke-width", 1)
-        //   .style("opacity", "1")
+          // .transition().duration(0)
+         // .style("stroke", "#000")
+         //  .style("stroke-width", 4)
+         //  .style("opacity", 1)
 
 
 
@@ -248,10 +279,11 @@ var alerted = false
 
       // Unhighlight
       var doNotHighlight = function(d){
-        // d3.selectAll(".line")
-        //   .transition().duration(1000).delay(500)
-        //   .style("stroke", "#69b3a2")
-        //   .style("opacity", "1")
+      //   d3.selectAll(".line")
+      //     .transition().duration(1000).delay(500)
+      //   //  .style("stroke", "#69b3a2")
+      //     .style("opacity", "1")
+      //     .style("stroke-width", 1)
 
 
           d3.select("#arcSelection").remove();
@@ -272,9 +304,9 @@ var alerted = false
             .style("fill", "none")
             //.style("stroke", "#69b3a2")
             .style("stroke", function(d) { return stc(d.location) })
-            .style("opacity", 0.4)
+            .style("opacity", 0.7)
             //.style("stroke-width", 1.2)
-             .style("stroke-width", 1.5)
+             .style("stroke-width", 2)
             .on("mouseover", highlight)
             .on("mouseout", doNotHighlight )
           // .on("mouseclick", )

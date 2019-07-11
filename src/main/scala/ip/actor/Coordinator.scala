@@ -1,5 +1,7 @@
 package ip.actor
 
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit
 
@@ -9,7 +11,6 @@ import akka.pattern.pipe
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import ip.actor.SimpleViewActor.GetSimpleViews
-
 import akka.actor.{Actor, PoisonPill, Props}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
@@ -54,7 +55,8 @@ class Coordinator(
           currentPage = currentPage + 1
           println("page = " + currentPage)
           if (toDo.isEmpty) {
-            writeResultToFile(finished)
+            val noLastFloor = finished.filter(s => !s.floor.isGround && !s.floor.isLast && s.surface <= 200)
+            writeResultToFile(noLastFloor)
           } else {
             val next = toDo.headOption
             next.foreach(parseNextPage)
@@ -74,9 +76,19 @@ class Coordinator(
   }
 
   private def writeResultToFile(finished: List[SimpleView]) = {
-    println("all Finished, total = " + finished.size)
+    val df = new SimpleDateFormat("yyyy-MM-dd")
+    val date = df.format(new Date())
+
     val finishedCsv = csvService.exportToCsv(finished)
-    csvService.writeToFile(finishedCsv, "simple_views.csv")
+    csvService.writeToFile(finishedCsv, s"$date/all.csv")
+
+
+    finished.groupBy(_.location).foreach { case (location , views) =>
+      val csv = csvService.exportToCsv(views)
+      csvService.writeToFile(csv, s"$date/$location.csv")
+    }
+
+    println("all Finished, total = " + finished.size)
   }
 }
 

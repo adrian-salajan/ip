@@ -6,7 +6,13 @@ import java.io.{File, PrintWriter}
 class CsvService {
 
   def writeToFile(csvLines: List[String], fileName: String): Unit = {
-    val writer = new PrintWriter(new File(fileName))
+    val file = new File(fileName)
+
+    if (!file.getParentFile.exists()) {
+      file.getParentFile.mkdirs()
+    }
+
+    val writer = new PrintWriter(file)
     writer.println(CsvService.SimpleViewHeader)
     csvLines.foreach(line => writer.println(line))
     writer.flush()
@@ -16,15 +22,20 @@ class CsvService {
 
   def exportToCsv(simpleViews: List[SimpleView]): List[String] = {
 
-    simpleViews.map(toCsv)
+    simpleViews.zipWithIndex.map(t => toCsv(t._2, t._1))
 
   }
 
-  private def toCsv(s: SimpleView): String = {
-    s"${s.id},${s.rooms}," +
-      s"${s.surface},${s.floor.floor},${s.floor.floorMax},${compartiment(s.compartiment)},${age(s.age)}," +
-      s"${s.priceEur},${s.location},${s.url.toString}"
+//  val SimpleViewHeader = "ordinal,id,location,euro,surface,compartiment,link"
+  private def toCsv(index:Int, s: SimpleView): String = {
+    s"$index,${s.id},${s.location},${s.priceEur},${s.surface},${compartiment(s.compartiment)},${s.url.toString}"
   }
+
+//  private def toCsv(s: SimpleView): String = {
+//    s"${s.id},${s.rooms}," +
+//      s"${s.surface},${s.floor.floor},${s.floor.floorMax},${compartiment(s.compartiment)},${age(s.age)}," +
+//      s"${s.priceEur},${s.location},${s.url.toString}"
+//  }
 
 
   private def compartiment(compartiment: Compartiment): String = compartiment match {
@@ -46,7 +57,7 @@ class CsvService {
 
 object CsvService {
 
-  val SimpleViewHeader = "id,rooms,surface,floor,maxfloor,compartiment,age,euro,location,link"
+  val SimpleViewHeader = "ordinal,id,location,euro,surface,compartiment,link"
 
 
 }

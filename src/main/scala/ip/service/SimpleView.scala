@@ -1,7 +1,10 @@
 package ip.service
 
 
-case class Floor(floor: Int, floorMax: Int)
+case class Floor(floor: Int, floorMax: Int) {
+  def isLast = floor == floorMax
+  def isGround = floor == 0
+}
 
 sealed trait Compartiment
 object Decomandat extends Compartiment
